@@ -22,7 +22,7 @@ import (
 
 // TODO Tmp implementation, not sure what goes into Deployment
 type Deployment struct {
-	SubscriptionName string
+	SubscriptionName string `json:"subscriptionname,omitempty"`
 }
 
 // PubSubListenerSpec defines the desired state of PubSubListener
