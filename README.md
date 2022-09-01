@@ -1,4 +1,4 @@
-# operator-kube
+# pubsub-puller
 // TODO(user): Add simple overview of use/purpose
 
 ## Description
