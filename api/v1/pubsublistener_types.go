@@ -20,22 +20,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// TODO Tmp implementation, not sure what goes into Deployment
+type Deployment struct {
+	SubscriptionName string
+}
 
 // PubSubListenerSpec defines the desired state of PubSubListener
 type PubSubListenerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of PubSubListener. Edit pubsublistener_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// deployment should match the name of the pubsub subscription
+	Subscription string `json:"subscription,omitempty"`
 }
 
 // PubSubListenerStatus defines the observed state of PubSubListener
 type PubSubListenerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Deployments []Deployment `json:"deploymeny,omitempty"`
 }
 
 //+kubebuilder:object:root=true

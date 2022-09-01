@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1 contains API Schema definitions for the batch v1 API group
-//+kubebuilder:object:generate=true
-//+groupName=batch.company.org
+// +kubebuilder:object:generate=true
+// +groupName=batch.company.org
 package v1
 
 import (
