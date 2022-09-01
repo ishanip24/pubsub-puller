@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	pubsub "cloud.google.com/go/pubsub"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,14 +32,13 @@ type PubSubListenerSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// deployment should match the name of the pubsub subscription
-	Subscription string `json:"subscription,omitempty"`
+	SubscriptionName string `json:"subscriptionname,omitempty"`
 }
 
 // PubSubListenerStatus defines the observed state of PubSubListener
 type PubSubListenerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	Deployments []Deployment `json:"deploymeny,omitempty"`
+	// A list of pointers to current deployments
+	Deployments []Deployment `json:"deployments"`
 }
 
 //+kubebuilder:object:root=true
@@ -51,6 +51,8 @@ type PubSubListener struct {
 
 	Spec   PubSubListenerSpec   `json:"spec,omitempty"`
 	Status PubSubListenerStatus `json:"status,omitempty"`
+
+	Subscription *pubsub.Subscription `json:"subscription,omitempty"`
 }
 
 //+kubebuilder:object:root=true
