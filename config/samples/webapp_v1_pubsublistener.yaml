@@ -1,6 +1,0 @@
-apiVersion: webapp.company.org/v1
-kind: PubSubListener
-metadata:
-  name: pubsublistener-sample
-spec:
-  # TODO(user): Add fields here
