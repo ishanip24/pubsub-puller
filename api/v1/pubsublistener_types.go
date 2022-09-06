@@ -17,28 +17,53 @@ limitations under the License.
 package v1
 
 import (
-	pubsub "cloud.google.com/go/pubsub"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// TODO Tmp implementation, not sure what goes into Deployment
-type Deployment struct {
-	SubscriptionName string `json:"subscriptionname,omitempty"`
-}
 
 // PubSubListenerSpec defines the desired state of PubSubListener
 type PubSubListenerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	//+kubebuilder:validation:MinLength=0
+	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+	ScheduledJobTime *time.Time `json:"schedule"`
+
 	// deployment should match the name of the pubsub subscription
 	SubscriptionName string `json:"subscriptionname,omitempty"`
+
+	//+kubebuilder:validation:Minimum=0
+
+	// The number of successful finished jobs to retain.
+	// This is a pointer to distinguish between explicit zero and not specified.
+	// +optional
+	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+
+	//+kubebuilder:validation:Minimum=0
+
+	// The number of failed finished jobs to retain.
+	// This is a pointer to distinguish between explicit zero and not specified.
+	// +optional
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
+
+	// This flag tells the controller to suspend subsequent executions, it does
+	// not apply to already started executions.  Defaults to false.
+	// +optional
+	Suspend *bool `json:"suspend,omitempty"`
 }
 
 // PubSubListenerStatus defines the observed state of PubSubListener
 type PubSubListenerStatus struct {
 	// A list of pointers to current deployments
-	Deployments []Deployment `json:"deployments"`
+	// +optional
+	SubscriptionPuller []corev1.ObjectReference `json:"subscriptionpuller"`
+
+	// Information when was the last time the job was successfully scheduled.
+	// +optional
+	LastScheduleTime *metav1.Time `json:"lastScheduleTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -51,8 +76,6 @@ type PubSubListener struct {
 
 	Spec   PubSubListenerSpec   `json:"spec,omitempty"`
 	Status PubSubListenerStatus `json:"status,omitempty"`
-
-	Subscription *pubsub.Subscription `json:"subscription,omitempty"`
 }
 
 //+kubebuilder:object:root=true
