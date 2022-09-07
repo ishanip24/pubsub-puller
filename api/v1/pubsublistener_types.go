@@ -17,8 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,9 +26,9 @@ type PubSubListenerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//+kubebuilder:validation:MinLength=0
-	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
-	ScheduledJobTime *time.Time `json:"schedule"`
+	// Interval time in seconds to poll in Unix Timestamp format.
+	// See https://www.unixtimestamp.com/
+	PollingInterval *int64 `json:"pollinginterval"`
 
 	// deployment should match the name of the pubsub subscription
 	SubscriptionName string `json:"subscriptionname,omitempty"`

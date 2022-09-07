@@ -41,8 +41,66 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              schedule:
+                description: "A Time represents an instant in time with nanosecond
+                  precision. \n Programs using times should typically store and pass
+                  them as values, not pointers. That is, time variables and struct
+                  fields should be of type time.Time, not *time.Time. \n A Time value
+                  can be used by multiple goroutines simultaneously except that the
+                  methods GobDecode, UnmarshalBinary, UnmarshalJSON and UnmarshalText
+                  are not concurrency-safe. \n Time instants can be compared using
+                  the Before, After, and Equal methods. The Sub method subtracts two
+                  instants, producing a Duration. The Add method adds a Time and a
+                  Duration, producing a Time. \n The zero value of type Time is January
+                  1, year 1, 00:00:00.000000000 UTC. As this time is unlikely to come
+                  up in practice, the IsZero method gives a simple way of detecting
+                  a time that has not been initialized explicitly. \n Each Time has
+                  associated with it a Location, consulted when computing the presentation
+                  form of the time, such as in the Format, Hour, and Year methods.
+                  The methods Local, UTC, and In return a Time with a specific location.
+                  Changing the location in this way changes only the presentation;
+                  it does not change the instant in time being denoted and therefore
+                  does not affect the computations described in earlier paragraphs.
+                  \n Representations of a Time value saved by the GobEncode, MarshalBinary,
+                  MarshalJSON, and MarshalText methods store the Time.Location's offset,
+                  but not the location name. They therefore lose information about
+                  Daylight Saving Time. \n In addition to the required “wall clock”
+                  reading, a Time may contain an optional reading of the current process's
+                  monotonic clock, to provide additional precision for comparison
+                  or subtraction. See the “Monotonic Clocks” section in the package
+                  documentation for details. \n Note that the Go == operator compares
+                  not just the time instant but also the Location and the monotonic
+                  clock reading. Therefore, Time values should not be used as map
+                  or database keys without first guaranteeing that the identical Location
+                  has been set for all values, which can be achieved through use of
+                  the UTC or Local method, and that the monotonic clock reading has
+                  been stripped by setting t = t.Round(0). In general, prefer t.Equal(u)
+                  to t == u, since t.Equal uses the most accurate comparison available
+                  and correctly handles the case when only one of its arguments has
+                  a monotonic clock reading."
+                properties:
+                  inner:
+                    allOf:
+                    - items:
+                        description: A zone represents a single time zone such as
+                          CET.
+                        type: string
+                    - items:
+                        description: A zoneTrans represents a single time zone transition.
+                        format: int64
+                        type: integer
+                    description: loc specifies the Location that should be used to
+                      determine the minute, hour, month, day, and year that correspond
+                      to this Time. The nil location means UTC. All UTC times are
+                      represented with loc==nil, never loc==&utcLoc.
+                    format: int64
+                    type: string
+                required:
+                - inner
+                type: object
               subscriptionname:
                 description: deployment should match the name of the pubsub subscription
+                minLength: 0
                 type: string
               successfulJobsHistoryLimit:
                 description: The number of successful finished jobs to retain. This
@@ -55,12 +113,19 @@ spec:
                   executions, it does not apply to already started executions.  Defaults
                   to false.
                 type: boolean
+            required:
+            - schedule
             type: object
           status:
             description: PubSubListenerStatus defines the observed state of PubSubListener
             properties:
-              active:
-                description: A list of pointers to currently running jobs.
+              lastScheduleTime:
+                description: Information when was the last time the job was successfully
+                  scheduled.
+                format: date-time
+                type: string
+              subscriptionpuller:
+                description: A list of pointers to current deployments
                 items:
                   description: 'ObjectReference contains enough information to let
                     you inspect or modify the referred object. --- New uses of this
@@ -123,17 +188,6 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
-              deployments:
-                description: A list of pointers to current deployments
-                items:
-                  description: TODO Tmp implementation, not sure what goes into Deployment
-                  properties:
-                    subscriptionname:
-                      type: string
-                  type: object
-                type: array
-            required:
-            - deployments
             type: object
         type: object
     served: true

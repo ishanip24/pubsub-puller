@@ -124,12 +124,12 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// We'll store the launch time in an annotation, so we'll reconstitute that from
 		// the active jobs themselves.
-		scheduledTimeForJob := pubSubListener.Spec.ScheduledJobTime
-		if scheduledTimeForJob != nil {
+		scheduledTimeForJob := time.Unix(*pubSubListener.Spec.PollingInterval, 0)
+		if &scheduledTimeForJob != nil {
 			if mostRecentTime == nil {
-				mostRecentTime = scheduledTimeForJob
-			} else if mostRecentTime.Before(*scheduledTimeForJob) {
-				mostRecentTime = scheduledTimeForJob
+				mostRecentTime = &scheduledTimeForJob
+			} else if mostRecentTime.Before(scheduledTimeForJob) {
+				mostRecentTime = &scheduledTimeForJob
 			}
 		}
 	}
