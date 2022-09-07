@@ -57,7 +57,7 @@ type PubSubListenerSpec struct {
 type PubSubListenerStatus struct {
 	// A list of pointers to current deployments
 	// +optional
-	SubscriptionPuller []corev1.ObjectReference `json:"subscriptionpuller"`
+	SubscriptionPuller []corev1.Container `json:"subscriptionpuller"`
 
 	// Information when was the last time the job was successfully scheduled.
 	// +optional

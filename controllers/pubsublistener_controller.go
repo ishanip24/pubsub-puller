@@ -27,7 +27,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -276,7 +275,7 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 					"app/listener": "pubsublistener",
 				},
 			},
-			Template: v1.PodTemplateSpec{
+			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app":          "pubsubpuller",
@@ -284,12 +283,12 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 						"app/listener": "pubsublistener",
 					},
 				},
-				Spec: v1.PodSpec{
+				Spec: corev1.PodSpec{
 					AutomountServiceAccountToken: &yep,
-					Containers: []v1.Container{
+					Containers: []corev1.Container{
 						{
 							Args: []string{"pull-topic", "-forever"},
-							Env: []v1.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name:  "DEBUG",
 									Value: "\"TRUE\"",
@@ -308,28 +307,28 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 								},
 							},
 							Image:           "gcr.io/khan-internal-services/districts-jobs-roster:50e642a40dd5ab694b29029cde309c19c4609695",
-							ImagePullPolicy: v1.PullAlways,
+							ImagePullPolicy: corev1.PullAlways,
 							Name:            "pubsubpuller",
-							Resources: v1.ResourceRequirements{
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:    cpuLimit,
-									v1.ResourceMemory: memoryLimit,
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    cpuLimit,
+									corev1.ResourceMemory: memoryLimit,
 								},
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:    cpuLimit,
-									v1.ResourceMemory: memoryLimit,
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    cpuLimit,
+									corev1.ResourceMemory: memoryLimit,
 								},
 							},
-							SecurityContext: &v1.SecurityContext{
+							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &nope,
 								RunAsUser:                &nobody,
 								RunAsGroup:               &nobody,
 								ReadOnlyRootFilesystem:   &nope,
 								AllowPrivilegeEscalation: &nope,
 							},
-							TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+							TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 							TerminationMessagePath:   "/dev/termination-log",
-							VolumeMounts: []v1.VolumeMount{
+							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "service-account-credentials-vol",
 									MountPath: "/config/secret",
@@ -341,24 +340,24 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 							},
 						},
 					},
-					DNSPolicy:                     v1.DNSClusterFirst,
+					DNSPolicy:                     corev1.DNSClusterFirst,
 					EnableServiceLinks:            &yep,
-					RestartPolicy:                 v1.RestartPolicyAlways,
-					ServiceAccountName:            v1.NamespaceDefault,
+					RestartPolicy:                 corev1.RestartPolicyAlways,
+					ServiceAccountName:            corev1.NamespaceDefault,
 					TerminationGracePeriodSeconds: &defaultTerminationGracePeriodSeconds,
-					Volumes: []v1.Volume{
+					Volumes: []corev1.Volume{
 						{
 							Name: "scratch-vol",
-							VolumeSource: v1.VolumeSource{
-								EmptyDir: &v1.EmptyDirVolumeSource{
-									Medium: v1.StorageMediumMemory,
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									Medium: corev1.StorageMediumMemory,
 								},
 							},
 						},
 						{
 							Name: "service-account-credentials-vol",
-							VolumeSource: v1.VolumeSource{
-								Secret: &v1.SecretVolumeSource{
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
 									SecretName:  "service-account-credentials",
 									DefaultMode: &fileMode,
 									Optional:    &nope,

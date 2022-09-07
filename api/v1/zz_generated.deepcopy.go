@@ -125,8 +125,10 @@ func (in *PubSubListenerStatus) DeepCopyInto(out *PubSubListenerStatus) {
 	*out = *in
 	if in.SubscriptionPuller != nil {
 		in, out := &in.SubscriptionPuller, &out.SubscriptionPuller
-		*out = make([]corev1.ObjectReference, len(*in))
-		copy(*out, *in)
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.LastScheduleTime != nil {
 		in, out := &in.LastScheduleTime, &out.LastScheduleTime
