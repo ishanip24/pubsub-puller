@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -30,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ref "k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -81,139 +79,40 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// 2: List all active jobs, and update the status
-	var childJobs kbatch.JobList
-	if err := r.List(ctx, &childJobs, client.InNamespace(req.Namespace), client.MatchingFields{jobOwnerKey: req.Name}); err != nil {
-		log.Error(err, "unable to list child Jobs")
-		return ctrl.Result{}, err
-	}
-
-	var activeJobs []*kbatch.Job
-	var successfulJobs []*kbatch.Job
-	var failedJobs []*kbatch.Job
 	var mostRecentTime *time.Time // find the last run so we can update the status
 
-	isJobFinished := func(job *kbatch.Job) (bool, kbatch.JobConditionType) {
-		for _, c := range job.Status.Conditions {
-			if (c.Type == kbatch.JobComplete || c.Type == kbatch.JobFailed) && c.Status == corev1.ConditionTrue {
-				return true, c.Type
-			}
-		}
-
-		return false, ""
-	}
-	// +kubebuilder:docs-gen:collapse=isJobFinished
-
-	/*
-		We'll use a helper to extract the scheduled time from the annotation that
-		we added during job creation.
-	*/
-	// +kubebuilder:docs-gen:collapse=getScheduledTimeForJob
-
-	for i, job := range childJobs.Items {
-		_, finishedType := isJobFinished(&job)
-		switch finishedType {
-		case "": // ongoing
-			activeJobs = append(activeJobs, &childJobs.Items[i])
-		case kbatch.JobFailed:
-			failedJobs = append(failedJobs, &childJobs.Items[i])
-		case kbatch.JobComplete:
-			successfulJobs = append(successfulJobs, &childJobs.Items[i])
-		}
-
-		// We'll store the launch time in an annotation, so we'll reconstitute that from
-		// the active jobs themselves.
-		scheduledTimeForJob := time.Unix(*pubSubListener.Spec.PollingInterval, 0)
-		if &scheduledTimeForJob != nil {
-			if mostRecentTime == nil {
-				mostRecentTime = &scheduledTimeForJob
-			} else if mostRecentTime.Before(scheduledTimeForJob) {
-				mostRecentTime = &scheduledTimeForJob
-			}
+	// We'll store the launch time in an annotation, so we'll reconstitute that from
+	// the active jobs themselves.
+	scheduledTimeForJob := time.Unix(*pubSubListener.Spec.PollingInterval, 0)
+	if &scheduledTimeForJob != nil {
+		if mostRecentTime == nil {
+			mostRecentTime = &scheduledTimeForJob
+		} else if mostRecentTime.Before(scheduledTimeForJob) {
+			mostRecentTime = &scheduledTimeForJob
 		}
 	}
-
 	if mostRecentTime != nil {
 		pubSubListener.Status.LastScheduleTime = &metav1.Time{Time: *mostRecentTime}
 	} else {
 		pubSubListener.Status.LastScheduleTime = nil
 	}
 
-	pubSubListener.Status.SubscriptionPuller = nil
-	for _, activeJob := range activeJobs {
-		jobRef, err := ref.GetReference(r.Scheme, activeJob)
-		if err != nil {
-			log.Error(err, "unable to make reference to active job", "job", activeJob)
-			continue
-		}
-		pubSubListener.Status.SubscriptionPuller = append(pubSubListener.Status.SubscriptionPuller, *jobRef)
-	}
-
-	/*
-		Here, we'll log how many jobs we observed at a slightly higher logging level,
-		for debugging.  Notice how instead of using a format string, we use a fixed message,
-		and attach key-value pairs with the extra information.  This makes it easier to
-		filter and query log lines.
-	*/
-	log.V(1).Info("job count", "active jobs", len(activeJobs), "successful jobs", len(successfulJobs), "failed jobs", len(failedJobs))
-
-	// +kubebuilder:docs-gen:collapse=isJobFinished
-
 	if err := r.Status().Update(ctx, &pubSubListener); err != nil {
 		log.Error(err, "unable to update PubSubListener status")
 		return ctrl.Result{}, err
 	}
 
-	// 3: Clean up old jobs according to the history limit
-	if pubSubListener.Spec.FailedJobsHistoryLimit != nil {
-		sort.Slice(failedJobs, func(i, j int) bool {
-			if failedJobs[i].Status.StartTime == nil {
-				return failedJobs[j].Status.StartTime != nil
-			}
-			return failedJobs[i].Status.StartTime.Before(failedJobs[j].Status.StartTime)
-		})
-		for i, job := range failedJobs {
-			if int32(i) >= int32(len(failedJobs))-*pubSubListener.Spec.FailedJobsHistoryLimit {
-				break
-			}
-			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
-				log.Error(err, "unable to delete old failed job", "job", job)
-			} else {
-				log.V(0).Info("deleted old failed job", "job", job)
-			}
-		}
-	}
-
-	if pubSubListener.Spec.SuccessfulJobsHistoryLimit != nil {
-		sort.Slice(successfulJobs, func(i, j int) bool {
-			if successfulJobs[i].Status.StartTime == nil {
-				return successfulJobs[j].Status.StartTime != nil
-			}
-			return successfulJobs[i].Status.StartTime.Before(successfulJobs[j].Status.StartTime)
-		})
-		for i, job := range successfulJobs {
-			if int32(i) >= int32(len(successfulJobs))-*pubSubListener.Spec.SuccessfulJobsHistoryLimit {
-				break
-			}
-			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); (err) != nil {
-				log.Error(err, "unable to delete old successful job", "job", job)
-			} else {
-				log.V(0).Info("deleted old successful job", "job", job)
-			}
-		}
-	}
-
-	// 4: check if we're suspended
+	// 2: check if we're suspended
 	if pubSubListener.Spec.Suspend != nil && *pubSubListener.Spec.Suspend {
 		log.V(1).Info("Job suspended, skipping")
 		return ctrl.Result{}, nil
 	}
 
-	// 5: get next scheduled run
+	// 3: get next scheduled run
 
 	// Check if there is a deployment that matches the name of the pubsub subscription
 	subscriptionPullers := pubSubListener.Status.SubscriptionPuller
-	var found *corev1.ObjectReference
+	var found *corev1.Container
 	for _, subscriptionPuller := range subscriptionPullers {
 		subName := subscriptionPuller.String()
 		// convert the name conventions to match
