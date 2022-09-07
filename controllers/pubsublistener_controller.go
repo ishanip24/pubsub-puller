@@ -18,9 +18,7 @@ package controllers
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,9 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -132,28 +127,16 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			break
 		}
 	}
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		panic(err)
+	clientSet, clientSetErr := NewKubeClient()
+	if clientSetErr != nil {
+		return ctrl.Result{}, clientSetErr
 	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err)
-	}
-
 	// If the instance is active but is suspended, delete the deployment
-	deploymentsClient := clientset.AppsV1().Deployments(corev1.NamespaceDefault)
+	deploymentsClient := clientSet.AppsV1().Deployments(corev1.NamespaceDefault)
 	if found != nil && pubSubListener.Spec.Suspend != nil && found.Status.Conditions[0].Type != appsv1.DeploymentAvailable {
 		deletePolicy := metav1.DeletePropagationForeground
-		if err := deploymentsClient.Delete(context.TODO(), "demo-deployment", metav1.DeleteOptions{
+		if err := deploymentsClient.Delete(ctx, "pubsubpuller", metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
 		}); err != nil {
 			panic(err)
@@ -191,28 +174,25 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pubsubpuller",
+			Name:      "pubsublistener",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":          "pubsubpuller",
-				"tier":         "backend",
-				"app/listener": "pubsublistener",
+				"app":  "pubsublistener",
+				"tier": "backend",
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":          "pubsubpuller",
-					"tier":         "backend",
-					"app/listener": "pubsublistener",
+					"app":  "pubsublistener",
+					"tier": "backend",
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app":          "pubsubpuller",
-						"tier":         "backend",
-						"app/listener": "pubsublistener",
+						"app":  "pubsublistener",
+						"tier": "backend",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -240,7 +220,7 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 							},
 							Image:           "gcr.io/khan-internal-services/districts-jobs-roster:50e642a40dd5ab694b29029cde309c19c4609695",
 							ImagePullPolicy: corev1.PullAlways,
-							Name:            "pubsubpuller",
+							Name:            "pubsublistener",
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
 									corev1.ResourceCPU:    cpuLimit,
