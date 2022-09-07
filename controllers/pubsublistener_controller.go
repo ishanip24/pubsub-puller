@@ -210,7 +210,7 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// 4: check if we're suspended
 	if pubSubListener.Spec.Suspend != nil && *pubSubListener.Spec.Suspend {
-		log.V(1).Info("cronjob suspended, skipping")
+		log.V(1).Info("Job suspended, skipping")
 		return ctrl.Result{}, nil
 	}
 
@@ -226,12 +226,10 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		subName = strings.ReplaceAll(subName, "_", "")
 
 		// Decide if one matches the pubsub name
-		if subName == pubSubListener.Spec.SubscriptionName { // TODO: how to check if DEPLOYMENT (not job) is active?
+		if subName == pubSubListener.Spec.SubscriptionName {
 			if *pubSubListener.Spec.Suspend == false {
 				found = &subscriptionPuller
 			}
-			// what if matching one found, and is active, but CRD says it should be suspended?
-			// TODO: delete it via kubernetes api
 			break
 		}
 	}
