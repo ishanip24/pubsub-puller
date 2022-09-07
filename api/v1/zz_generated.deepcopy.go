@@ -22,7 +22,7 @@ limitations under the License.
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -125,7 +125,7 @@ func (in *PubSubListenerStatus) DeepCopyInto(out *PubSubListenerStatus) {
 	*out = *in
 	if in.SubscriptionPuller != nil {
 		in, out := &in.SubscriptionPuller, &out.SubscriptionPuller
-		*out = make([]corev1.Container, len(*in))
+		*out = make([]appsv1.Deployment, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

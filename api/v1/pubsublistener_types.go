@@ -17,7 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -57,7 +57,7 @@ type PubSubListenerSpec struct {
 type PubSubListenerStatus struct {
 	// A list of pointers to current deployments
 	// +optional
-	SubscriptionPuller []corev1.Container `json:"subscriptionpuller"`
+	SubscriptionPuller []appsv1.Deployment `json:"subscriptionpuller"`
 
 	// Information when was the last time the job was successfully scheduled.
 	// +optional

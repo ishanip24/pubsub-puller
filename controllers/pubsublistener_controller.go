@@ -18,7 +18,9 @@ package controllers
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,6 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -112,7 +117,7 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Check if there is a deployment that matches the name of the pubsub subscription
 	subscriptionPullers := pubSubListener.Status.SubscriptionPuller
-	var found *corev1.Container
+	var found *appsv1.Deployment
 	for _, subscriptionPuller := range subscriptionPullers {
 		subName := subscriptionPuller.String()
 		// convert the name conventions to match
@@ -127,7 +132,35 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			break
 		}
 	}
-	// do not create one if status is suspended!
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
+
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err)
+	}
+
+	// If the instance is active but is suspended, delete the deployment
+	deploymentsClient := clientset.AppsV1().Deployments(corev1.NamespaceDefault)
+	if found != nil && pubSubListener.Spec.Suspend != nil && found.Status.Conditions[0].Type != appsv1.DeploymentAvailable {
+		deletePolicy := metav1.DeletePropagationForeground
+		if err := deploymentsClient.Delete(context.TODO(), "demo-deployment", metav1.DeleteOptions{
+			PropagationPolicy: &deletePolicy,
+		}); err != nil {
+			panic(err)
+		}
+		log.V(1).Info("Deleted deployment.")
+	}
+	// Only create if deployment not found
 	if found == nil && *pubSubListener.Spec.Suspend == false { // if subscription name not found, create deployment
 		err := createSub(ctx, log, pubSubListener, "pull-test-results", "tmp-district-id")
 		if err != nil {
