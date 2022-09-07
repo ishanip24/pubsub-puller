@@ -227,7 +227,7 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// Decide if one matches the pubsub name
 		if subName == pubSubListener.Spec.SubscriptionName {
-			if *pubSubListener.Spec.Suspend == false {
+			if pubSubListener.Spec.Suspend == nil && !*pubSubListener.Spec.Suspend {
 				found = &subscriptionPuller
 			}
 			break
