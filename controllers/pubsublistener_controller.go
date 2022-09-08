@@ -24,7 +24,6 @@ import (
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
-	kbatch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,8 +134,9 @@ func (r *PubSubListenerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// If the instance is active but is suspended, delete the deployment
 	deploymentsClient := clientSet.AppsV1().Deployments(corev1.NamespaceDefault)
 	if found != nil && pubSubListener.Spec.Suspend != nil && found.Status.Conditions[0].Type != appsv1.DeploymentAvailable {
+		// set deletion timestamp on the suspended deployment
 		deletePolicy := metav1.DeletePropagationForeground
-		if err := deploymentsClient.Delete(ctx, "pubsubpuller", metav1.DeleteOptions{
+		if err := deploymentsClient.Delete(ctx, found.Name, metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
 		}); err != nil {
 			panic(err)
@@ -289,16 +289,6 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 	}
 	log.Info(fmt.Sprintf("Created job %q.\n", result.GetObjectMeta().GetName()))
 	return nil
-}
-
-func containsJob(s []*kbatch.Job, job kbatch.Job) bool {
-	for _, v := range s {
-		if v == &job {
-			return true
-		}
-	}
-
-	return false
 }
 
 // SetupWithManager sets up the controller with the Manager.
