@@ -3,13 +3,13 @@ nameReference:
 - kind: Service
   version: v1
   fieldSpecs:
-  - kind: CustomResourceDefinition
+  - kind: PubSubListener
     version: v1
     group: apiextensions.k8s.io
     path: spec/conversion/webhook/clientConfig/service/name
 
 namespace:
-- kind: CustomResourceDefinition
+- kind: PubSubListener
   version: v1
   group: apiextensions.k8s.io
   path: spec/conversion/webhook/clientConfig/service/namespace
