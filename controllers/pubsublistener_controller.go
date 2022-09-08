@@ -41,24 +41,6 @@ type PubSubListenerReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-var (
-	AppName      = "unknown" // What the app/listener is called
-	Project      = "unknown" // Which GCP Project e.g. khan-internal-services
-	Date         = ""        // Build Date in RFC3339 e.g. $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-	GitCommit    = "?"       // Git Commit sha1 of source
-	Version      = "v0.0.0"  // go mod version: v0.0.0-20200214070026-92e9ce6ff79f
-	HumanVersion = fmt.Sprintf(
-		"%s %s %s (%s) on %s",
-		AppName,
-		Project,
-		Version,
-		GitCommit,
-		Date,
-	)
-	jobOwnerKey = ".metadata.controller"
-	apiGVStr    = myoperatorv1.GroupVersion.String()
-)
-
 //+kubebuilder:rbac:groups=batch.company.org,resources=pubsublisteners,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch.company.org,resources=pubsublisteners/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=batch.company.org,resources=pubsublisteners/finalizers,verbs=update
