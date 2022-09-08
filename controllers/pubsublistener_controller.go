@@ -42,7 +42,7 @@ type PubSubListenerReconciler struct {
 }
 
 var (
-	AppName      = "unknown" // What the app is called
+	AppName      = "unknown" // What the app/listener is called
 	Project      = "unknown" // Which GCP Project e.g. khan-internal-services
 	Date         = ""        // Build Date in RFC3339 e.g. $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 	GitCommit    = "?"       // Git Commit sha1 of source
@@ -177,22 +177,22 @@ func createSub(ctx context.Context, log logr.Logger, pubSubListener myoperatorv1
 			Name:      "pubsublistener",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":  "pubsublistener",
-				"tier": "backend",
+				"app/listener": "pubsublistener",
+				"tier":         "backend",
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":  "pubsublistener",
-					"tier": "backend",
+					"app/listener": "pubsublistener",
+					"tier":         "backend",
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app":  "pubsublistener",
-						"tier": "backend",
+						"app/listener": "pubsublistener",
+						"tier":         "backend",
 					},
 				},
 				Spec: corev1.PodSpec{
